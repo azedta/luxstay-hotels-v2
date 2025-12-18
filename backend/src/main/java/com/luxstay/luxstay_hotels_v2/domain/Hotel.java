@@ -36,6 +36,10 @@ public class Hotel {
     @Column
     private Integer rating; // validated at DTO level (1–5)
 
+    @Column(name = "image_url", length = 1000)
+    private String imageUrl;
+
+
     @OneToMany(mappedBy = "hotel", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Room> rooms;
 }

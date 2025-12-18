@@ -39,7 +39,9 @@ public class HotelController {
                 .city(req.city())
                 .email(req.email())
                 .rating(req.rating())
+                .imageUrl(req.imageUrl())
                 .build();
+
         return toDto(service.create(req.chainId(), payload));
     }
 
@@ -51,8 +53,11 @@ public class HotelController {
                 .city(req.city())
                 .email(req.email())
                 .rating(req.rating())
+                .imageUrl(req.imageUrl())
                 .build();
-        return toDto(service.update(id, req.chainId(), payload));
+
+        return toDto(service.update(id, payload));
+
     }
 
     @DeleteMapping("/{id}")
@@ -69,7 +74,10 @@ public class HotelController {
                 h.getAddress(),
                 h.getCity(),
                 h.getEmail(),
-                h.getRating()
+                h.getRating(),
+                h.getImageUrl()
         );
     }
+
+
 }

@@ -40,20 +40,20 @@ public class HotelService {
         return hotelRepo.save(payload);
     }
 
-    public Hotel update(Long id, Long chainId, Hotel payload) {
-        Hotel existing = get(id);
-        HotelChain chain = chainRepo.findById(chainId)
-                .orElseThrow(() -> new ResourceNotFoundException("HotelChain not found: " + chainId));
+    public Hotel update(Long id, Hotel payload) {
+        Hotel hotel = hotelRepo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Hotel not found"));
 
-        existing.setChain(chain);
-        existing.setName(payload.getName());
-        existing.setAddress(payload.getAddress());
-        existing.setCity(payload.getCity());
-        existing.setEmail(payload.getEmail());
-        existing.setRating(payload.getRating());
+        hotel.setName(payload.getName());
+        hotel.setAddress(payload.getAddress());
+        hotel.setCity(payload.getCity());
+        hotel.setEmail(payload.getEmail());
+        hotel.setRating(payload.getRating());
+        hotel.setImageUrl(payload.getImageUrl());
 
-        return hotelRepo.save(existing);
+        return hotelRepo.save(hotel);
     }
+
 
     public void delete(Long id) {
         if (!hotelRepo.existsById(id)) throw new ResourceNotFoundException("Hotel not found: " + id);
