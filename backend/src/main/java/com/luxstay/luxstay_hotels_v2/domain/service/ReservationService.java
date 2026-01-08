@@ -1,9 +1,12 @@
 package com.luxstay.luxstay_hotels_v2.domain.service;
 
-import com.luxstay.luxstay_hotels_v2.domain.*;
-import com.luxstay.luxstay_hotels_v2.domain.enums.*;
-import com.luxstay.luxstay_hotels_v2.domain.repo.*;
-import com.luxstay.luxstay_hotels_v2.web.exception.ResourceNotFoundException;
+import com.luxstay.luxstay_hotels_v2.domain.Customer;
+import com.luxstay.luxstay_hotels_v2.domain.Reservation;
+import com.luxstay.luxstay_hotels_v2.domain.Room;
+import com.luxstay.luxstay_hotels_v2.domain.repo.CustomerRepository;
+import com.luxstay.luxstay_hotels_v2.domain.repo.ReservationRepository;
+import com.luxstay.luxstay_hotels_v2.domain.repo.RoomRepository;
+import com.luxstay.luxstay_hotels_v2.web.dto.ReservationDtos;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,168 +17,232 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
-@Transactional
 public class ReservationService {
 
-    private final ReservationRepository reservationRepo;
-    private final RoomRepository roomRepo;
-    private final CustomerRepository customerRepo;
-    private final EmployeeRepository employeeRepo;
+    public static final String STATUS_ACTIVE = "ACTIVE";
+    public static final String STATUS_CANCELLED = "CANCELLED";
+    public static final String STATUS_COMPLETED = "COMPLETED";
 
-    public ReservationService(ReservationRepository reservationRepo,
-                              RoomRepository roomRepo,
-                              CustomerRepository customerRepo,
-                              EmployeeRepository employeeRepo) {
-        this.reservationRepo = reservationRepo;
-        this.roomRepo = roomRepo;
-        this.customerRepo = customerRepo;
-        this.employeeRepo = employeeRepo;
+    public static final String PAY_UNPAID = "UNPAID";
+    public static final String PAY_PAID = "PAID";
+
+    private final ReservationRepository reservations;
+    private final RoomRepository rooms;
+    private final CustomerRepository customers;
+
+    public ReservationService(ReservationRepository reservations,
+                              RoomRepository rooms,
+                              CustomerRepository customers) {
+        this.reservations = reservations;
+        this.rooms = rooms;
+        this.customers = customers;
     }
 
-    public Reservation create(Long roomId,
-                              Long customerId,
-                              Long handledByEmployeeId,
-                              LocalDate startDate,
-                              LocalDate endDate,
-                              ReservationType type) {
+    @Transactional(readOnly = true)
+    public Reservation get(Long id) {
+        return reservations.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Reservation not found: " + id));
+    }
 
-        if (startDate == null || endDate == null) throw new IllegalArgumentException("startDate/endDate required");
-        if (!endDate.isAfter(startDate)) throw new IllegalArgumentException("endDate must be after startDate");
+    @Transactional(readOnly = true)
+    public List<Reservation> list(Long roomId,
+                                  Long customerId,
+                                  String status,
+                                  String paymentStatus,
+                                  LocalDate fromDate,
+                                  LocalDate toDate) {
 
-        // 🔒 LOCK the room row (FOR UPDATE) for the whole transaction
-        Room room = roomRepo.findByIdForUpdate(roomId)
-                .orElseThrow(() -> new ResourceNotFoundException("Room not found: " + roomId));
-
-        Customer customer = customerRepo.findById(customerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Customer not found: " + customerId));
-
-        Employee emp = null;
-        if (handledByEmployeeId != null) {
-            emp = employeeRepo.findById(handledByEmployeeId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Employee not found: " + handledByEmployeeId));
+        if (fromDate == null && toDate == null) {
+            return reservations.findAllFiltered(roomId, customerId, status, paymentStatus);
         }
 
-        boolean hasConflicts = !reservationRepo.findActiveConflicts(
-                roomId, ReservationStatus.ACTIVE, startDate, endDate
-        ).isEmpty();
-
-        if (hasConflicts) {
-            // Better than IllegalArgumentException → we’ll map this to 409
-            throw new ResponseStatusException(
-                    HttpStatus.CONFLICT,
-                    "Room is not available for the selected dates"
-            );
+        if (fromDate == null || toDate == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Provide both fromDate and toDate");
         }
 
-        Reservation r = Reservation.builder()
-                .room(room)
-                .customer(customer)
-                .handledByEmployee(emp)
-                .startDate(startDate)
-                .endDate(endDate)
-                .type(type)
-                .status(ReservationStatus.ACTIVE)
-                .paymentStatus(PaymentStatus.UNPAID)
-                .build();
+        if (toDate.isBefore(fromDate)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "toDate must be >= fromDate");
+        }
 
-        return reservationRepo.save(r);
+        return reservations.findAllFilteredWithDates(roomId, customerId, status, paymentStatus, fromDate, toDate);
     }
 
 
-    public List<Reservation> list(Long customerId, Long roomId, ReservationStatus status, ReservationType type) {
-        return reservationRepo.search(customerId, roomId, status, type);
+    @Transactional
+    public Reservation create(ReservationDtos.CreateRequest req) {
+        validateDateRange(req.startDate(), req.endDate());
+
+        Room room = rooms.findById(req.roomId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Room not found: " + req.roomId()));
+
+        ensureRoomAvailable(room.getId(), req.startDate(), req.endDate(), null);
+
+        Customer customer = findOrCreateCustomer(req.customer());
+
+        Reservation r = new Reservation();
+        r.setRoom(room);
+        r.setCustomer(customer);
+        r.setStartDate(req.startDate());
+        r.setEndDate(req.endDate());
+        r.setStatus(STATUS_ACTIVE);
+        r.setPaymentStatus(PAY_UNPAID);
+        r.setNotes(req.notes());
+        r.setCancelledAt(null);
+        r.setCheckedInAt(null);
+        r.setCheckedOutAt(null);
+
+        return reservations.save(r);
     }
 
+    @Transactional
+    public Reservation update(Long id, ReservationDtos.UpdateRequest req) {
+        Reservation r = reservations.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Reservation not found: " + id));
 
+        Long newRoomId = (req.roomId() != null) ? req.roomId() : r.getRoom().getId();
+        LocalDate newStart = (req.startDate() != null) ? req.startDate() : r.getStartDate();
+        LocalDate newEnd = (req.endDate() != null) ? req.endDate() : r.getEndDate();
 
-    public Reservation cancel(Long id) {
-        Reservation r = reservationRepo.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Reservation not found: " + id));
-        r.setStatus(ReservationStatus.CANCELLED);
-        return reservationRepo.save(r);
+        validateDateRange(newStart, newEnd);
+
+        if (req.roomId() != null) {
+            Room room = rooms.findById(req.roomId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Room not found: " + req.roomId()));
+            r.setRoom(room);
+        }
+
+        boolean changesDatesOrRoom =
+                (req.roomId() != null) ||
+                        (req.startDate() != null) ||
+                        (req.endDate() != null);
+
+        if (changesDatesOrRoom) {
+            ensureRoomAvailable(newRoomId, newStart, newEnd, r.getId());
+        }
+
+        r.setStartDate(newStart);
+        r.setEndDate(newEnd);
+
+        if (req.checkedInAt() != null) r.setCheckedInAt(req.checkedInAt());
+        if (req.checkedOutAt() != null) r.setCheckedOutAt(req.checkedOutAt());
+        if (req.notes() != null) r.setNotes(req.notes());
+
+        if (req.paymentStatus() != null) {
+            r.setPaymentStatus(normalizePayment(req.paymentStatus()));
+        }
+
+        if (req.status() != null) {
+            String next = normalizeStatus(req.status());
+            if (STATUS_CANCELLED.equalsIgnoreCase(next)) {
+                r.setStatus(STATUS_CANCELLED);
+                r.setCancelledAt(LocalDateTime.now());
+            } else {
+                r.setStatus(next);
+                r.setCancelledAt(null);
+            }
+        }
+
+        return reservations.save(r);
     }
 
-    public Reservation complete(Long id) {
-        Reservation r = reservationRepo.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Reservation not found: " + id));
-        r.setStatus(ReservationStatus.COMPLETED);
-        return reservationRepo.save(r);
+    @Transactional
+    public void delete(Long id) {
+        if (!reservations.existsById(id)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Reservation not found: " + id);
+        }
+        reservations.deleteById(id);
     }
 
+    @Transactional
+    public Reservation cancel(Long id, ReservationDtos.CancelRequest req) {
+        Reservation r = reservations.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Reservation not found: " + id));
+
+        if (STATUS_CANCELLED.equalsIgnoreCase(r.getStatus())) return r;
+
+        r.setStatus(STATUS_CANCELLED);
+        r.setCancelledAt(LocalDateTime.now());
+
+        if (req != null && req.notes() != null && !req.notes().isBlank()) {
+            String existing = (r.getNotes() == null) ? "" : r.getNotes().trim();
+            String add = req.notes().trim();
+            r.setNotes(existing.isEmpty() ? add : (existing + "\n" + add));
+        }
+
+        return reservations.save(r);
+    }
+
+    @Transactional
     public Reservation pay(Long id) {
-        Reservation r = reservationRepo.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Reservation not found: " + id));
+        Reservation r = reservations.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Reservation not found: " + id));
 
-        if (r.getStatus() == ReservationStatus.CANCELLED) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Cannot pay a cancelled reservation");
-        }
-
-        if (r.getPaymentStatus() == PaymentStatus.PAID) {
-            return r; // idempotent
-        }
-
-        r.setPaymentStatus(PaymentStatus.PAID);
-        return reservationRepo.save(r);
+        r.setPaymentStatus(PAY_PAID);
+        return reservations.save(r);
     }
 
-    public Reservation assignEmployee(Long reservationId, Long employeeId) {
-        Reservation r = reservationRepo.findById(reservationId)
-                .orElseThrow(() -> new ResourceNotFoundException("Reservation not found: " + reservationId));
+    // ---------- Helpers ----------
 
-        Employee e = employeeRepo.findById(employeeId)
-                .orElseThrow(() -> new ResourceNotFoundException("Employee not found: " + employeeId));
-
-        r.setHandledByEmployee(e);
-        return reservationRepo.save(r);
+    private void validateDateRange(LocalDate start, LocalDate end) {
+        if (start == null || end == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "startDate and endDate are required");
+        }
+        if (!end.isAfter(start)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "endDate must be after startDate");
+        }
     }
 
-    public Reservation checkIn(Long reservationId) {
-        Reservation r = reservationRepo.findById(reservationId)
-                .orElseThrow(() -> new ResourceNotFoundException("Reservation not found: " + reservationId));
-
-        if (r.getStatus() != ReservationStatus.ACTIVE) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Only ACTIVE reservations can be checked in");
+    private void ensureRoomAvailable(Long roomId, LocalDate start, LocalDate end, Long excludeReservationId) {
+        boolean overlap = reservations.existsOverlappingReservation(roomId, start, end, excludeReservationId);
+        if (overlap) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Room is not available for the selected dates");
         }
-
-        if (r.getCheckedInAt() != null) {
-            return r; // idempotent
-        }
-
-        // Optional strict rule: cannot check-in before startDate
-        if (LocalDate.now().isBefore(r.getStartDate())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Cannot check-in before reservation start date");
-        }
-
-        r.setCheckedInAt(LocalDateTime.now());
-        return reservationRepo.save(r);
     }
 
-    public Reservation checkOut(Long reservationId) {
-        Reservation r = reservationRepo.findById(reservationId)
-                .orElseThrow(() -> new ResourceNotFoundException("Reservation not found: " + reservationId));
+    private Customer findOrCreateCustomer(ReservationDtos.CustomerRef c) {
+        String email = c.email().trim();
+        String idNumber = c.idNumber().trim();
 
-        if (r.getStatus() != ReservationStatus.ACTIVE) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Only ACTIVE reservations can be checked out");
-        }
-
-        if (r.getCheckedInAt() == null) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Cannot check-out before check-in");
-        }
-
-        if (r.getCheckedOutAt() != null) {
-            return r; // idempotent
-        }
-
-        // Optional strict rule: cannot check-out before endDate
-        // if (LocalDate.now().isBefore(r.getEndDate())) {
-        //     throw new ResponseStatusException(HttpStatus.CONFLICT, "Cannot check-out before reservation end date");
-        // }
-
-        r.setCheckedOutAt(LocalDateTime.now());
-        r.setStatus(ReservationStatus.COMPLETED); // check-out completes reservation
-        return reservationRepo.save(r);
+        return customers.findByIdNumberAndEmailIgnoreCase(idNumber, email)
+                .orElseGet(() -> {
+                    Customer created = new Customer();
+                    created.setFullName(c.fullName().trim());
+                    created.setAddress(c.address().trim());
+                    created.setDateOfBirth(c.dateOfBirth());
+                    created.setIdNumber(idNumber);
+                    created.setIdType(c.idType());
+                    created.setEmail(email);
+                    // registrationDate handled by @PrePersist in Customer
+                    return customers.save(created);
+                });
     }
 
+    private String normalizeStatus(String raw) {
+        String s = raw.trim().toUpperCase();
+        return switch (s) {
+            case STATUS_ACTIVE, STATUS_CANCELLED, STATUS_COMPLETED -> s;
+            default -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Invalid status. Use ACTIVE, CANCELLED, or COMPLETED");
+        };
+    }
 
+    private String normalizePayment(String raw) {
+        String p = raw.trim().toUpperCase();
+        return switch (p) {
+            case PAY_UNPAID, PAY_PAID -> p;
+            default -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Invalid paymentStatus. Use UNPAID or PAID");
+        };
+    }
 
+    public String effectiveStatus(Reservation r) {
+        if (r == null || r.getStatus() == null) return STATUS_ACTIVE;
+        if (STATUS_CANCELLED.equalsIgnoreCase(r.getStatus())) return STATUS_CANCELLED;
+
+        LocalDate today = LocalDate.now();
+        if (r.getEndDate() != null && r.getEndDate().isBefore(today) && STATUS_ACTIVE.equalsIgnoreCase(r.getStatus())) {
+            return STATUS_COMPLETED;
+        }
+        return r.getStatus().toUpperCase();
+    }
 }

@@ -1,4 +1,4 @@
-package com.luxstay.luxstay_hotels_v2.domain.repository;
+package com.luxstay.luxstay_hotels_v2.domain.repo;
 
 import com.luxstay.luxstay_hotels_v2.domain.Reservation;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -34,17 +34,47 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     );
 
     @Query("""
-        select r
-        from Reservation r
-        where (:roomId is null or r.room.id = :roomId)
-          and (:customerId is null or r.customer.id = :customerId)
-          and (:status is null or lower(r.status) = lower(:status))
-          and (:paymentStatus is null or lower(r.paymentStatus) = lower(:paymentStatus))
-          and (:fromDate is null or r.startDate >= :fromDate)
-          and (:toDate is null or r.endDate <= :toDate)
-        order by r.createdAt desc
-    """)
+    select r
+    from Reservation r
+    where (:roomId is null or r.room.id = :roomId)
+      and (:customerId is null or r.customer.id = :customerId)
+      and (:status is null or r.status = :status)
+      and (:paymentStatus is null or r.paymentStatus = :paymentStatus)
+    order by r.createdAt desc
+""")
     List<Reservation> findAllFiltered(
+            @Param("roomId") Long roomId,
+            @Param("customerId") Long customerId,
+            @Param("status") String status,
+            @Param("paymentStatus") String paymentStatus
+    );
+
+
+
+    @Query("""
+    select distinct r.room.id
+    from Reservation r
+    where lower(r.status) <> 'cancelled'
+      and :startDate < r.endDate
+      and :endDate > r.startDate
+""")
+    List<Long> findBookedRoomIdsInRange(
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate
+    );
+
+    @Query("""
+    select r
+    from Reservation r
+    where (:roomId is null or r.room.id = :roomId)
+      and (:customerId is null or r.customer.id = :customerId)
+      and (:status is null or r.status = :status)
+      and (:paymentStatus is null or r.paymentStatus = :paymentStatus)
+      and r.startDate >= :fromDate
+      and r.endDate <= :toDate
+    order by r.createdAt desc
+""")
+    List<Reservation> findAllFilteredWithDates(
             @Param("roomId") Long roomId,
             @Param("customerId") Long customerId,
             @Param("status") String status,

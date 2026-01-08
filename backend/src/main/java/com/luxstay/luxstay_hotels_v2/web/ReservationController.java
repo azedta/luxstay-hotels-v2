@@ -1,13 +1,14 @@
 package com.luxstay.luxstay_hotels_v2.web;
 
+import com.luxstay.luxstay_hotels_v2.domain.Customer;
 import com.luxstay.luxstay_hotels_v2.domain.Reservation;
-import com.luxstay.luxstay_hotels_v2.domain.enums.ReservationStatus;
-import com.luxstay.luxstay_hotels_v2.domain.enums.ReservationType;
 import com.luxstay.luxstay_hotels_v2.domain.service.ReservationService;
 import com.luxstay.luxstay_hotels_v2.web.dto.ReservationDtos;
 import jakarta.validation.Valid;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -20,78 +21,87 @@ public class ReservationController {
         this.service = service;
     }
 
-    @GetMapping
-    public List<ReservationDtos.Response> list(
-            @RequestParam(required = false) Long customerId,
-            @RequestParam(required = false) Long roomId,
-            @RequestParam(required = false) ReservationStatus status,
-            @RequestParam(required = false) ReservationType type
-    ) {
-        return service.list(customerId, roomId, status, type).stream().map(this::toDto).toList();
-    }
-
     @PostMapping
     public ReservationDtos.Response create(@Valid @RequestBody ReservationDtos.CreateRequest req) {
-        Reservation r = service.create(
-                req.roomId(),
-                req.customerId(),
-                req.handledByEmployeeId(),
-                req.startDate(),
-                req.endDate(),
-                req.type()
-        );
-        return toDto(r);
+        return toDto(service.create(req));
     }
 
-    @PatchMapping("/{id}/cancel")
-    public ReservationDtos.Response cancel(@PathVariable Long id) {
-        return toDto(service.cancel(id));
+    @GetMapping("/{id}")
+    public ReservationDtos.Response get(@PathVariable Long id) {
+        return toDto(service.get(id));
     }
 
-    @PatchMapping("/{id}/complete")
-    public ReservationDtos.Response complete(@PathVariable Long id) {
-        return toDto(service.complete(id));
+    @GetMapping
+    public List<ReservationDtos.Response> list(
+            @RequestParam(required = false) Long roomId,
+            @RequestParam(required = false) Long customerId,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String paymentStatus,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate
+    ) {
+        if (status != null) status = status.trim().toUpperCase();
+        if (paymentStatus != null) paymentStatus = paymentStatus.trim().toUpperCase();
+
+        return service.list(roomId, customerId, status, paymentStatus, fromDate, toDate)
+                .stream().map(this::toDto).toList();
     }
 
-    @PatchMapping("/{id}/pay")
+
+    @PutMapping("/{id}")
+    public ReservationDtos.Response update(@PathVariable Long id,
+                                           @Valid @RequestBody ReservationDtos.UpdateRequest req) {
+        return toDto(service.update(id, req));
+    }
+
+    @DeleteMapping("/{id}")
+    public void delete(@PathVariable Long id) {
+        service.delete(id);
+    }
+
+    @PostMapping("/{id}/cancel")
+    public ReservationDtos.Response cancel(@PathVariable Long id,
+                                           @RequestBody(required = false) ReservationDtos.CancelRequest req) {
+        return toDto(service.cancel(id, req));
+    }
+
+    @PostMapping("/{id}/pay")
     public ReservationDtos.Response pay(@PathVariable Long id) {
         return toDto(service.pay(id));
     }
 
-    @PatchMapping("/{id}/assign/{employeeId}")
-    public ReservationDtos.Response assign(@PathVariable Long id, @PathVariable Long employeeId) {
-        return toDto(service.assignEmployee(id, employeeId));
-    }
-
-    @PatchMapping("/{id}/check-in")
-    public ReservationDtos.Response checkIn(@PathVariable Long id) {
-        return toDto(service.checkIn(id));
-    }
-
-    @PatchMapping("/{id}/check-out")
-    public ReservationDtos.Response checkOut(@PathVariable Long id) {
-        return toDto(service.checkOut(id));
-    }
-
-
-
+    // ---------- Mapping ----------
 
     private ReservationDtos.Response toDto(Reservation r) {
+        Customer c = r.getCustomer();
+
+        ReservationDtos.CustomerSummary customer = (c == null) ? null :
+                new ReservationDtos.CustomerSummary(
+                        c.getId(),
+                        c.getFullName(),
+                        c.getAddress(),
+                        c.getDateOfBirth(),
+                        c.getIdNumber(),
+                        c.getIdType(),
+                        c.getEmail(),
+                        c.getRegistrationDate()
+                );
+
         return new ReservationDtos.Response(
                 r.getId(),
-                r.getRoom().getId(),
-                r.getCustomer().getId(),
-                r.getHandledByEmployee() == null ? null : r.getHandledByEmployee().getId(),
+                (r.getRoom() == null ? null : r.getRoom().getId()),
+                (r.getCustomer() == null ? null : r.getCustomer().getId()),
                 r.getStartDate(),
                 r.getEndDate(),
-                r.getType(),
-                r.getStatus(),
-                r.getPaymentStatus(),
+                service.effectiveStatus(r),
+                (r.getPaymentStatus() == null ? null : r.getPaymentStatus().toUpperCase()),
                 r.getCheckedInAt(),
                 r.getCheckedOutAt(),
-                r.getNotes()
+                r.getNotes(),
+                r.getCancelledAt(),
+                r.getCreatedAt(),
+                r.getUpdatedAt(),
+                customer
         );
     }
-
-
 }
