@@ -28,21 +28,31 @@ public class CustomerController {
         return toDto(service.get(id));
     }
 
+    /**
+     * Business-first endpoint:
+     * Creates a customer IF they don't already exist by (idNumber + email), otherwise returns the existing one.
+     */
     @PostMapping
     public CustomerDtos.Response create(@Valid @RequestBody CustomerDtos.CreateRequest req) {
-        return toDto(service.create(
+        Customer saved = service.findOrCreate(
                 req.fullName(),
                 req.address(),
                 req.dateOfBirth(),
                 req.idNumber(),
-                req.idType()
-        ));
+                req.idType(),
+                req.email()
+        );
+
+        return toDto(saved);
     }
 
     @PutMapping("/{id}")
-    public CustomerDtos.Response update(@PathVariable Long id, @Valid @RequestBody CustomerDtos.UpdateRequest req) {
-        return toDto(service.update(id, req.fullName(), req.address()));
+    public CustomerDtos.Response update(@PathVariable Long id,
+                                        @Valid @RequestBody CustomerDtos.UpdateRequest req) {
+        Customer saved = service.update(id, req.fullName(), req.address(), req.email());
+        return toDto(saved);
     }
+
 
     @DeleteMapping("/{id}")
     public void delete(@PathVariable Long id) {
@@ -57,7 +67,9 @@ public class CustomerController {
                 c.getDateOfBirth(),
                 c.getIdNumber(),
                 c.getIdType(),
+                c.getEmail(),
                 c.getRegistrationDate()
         );
     }
+
 }

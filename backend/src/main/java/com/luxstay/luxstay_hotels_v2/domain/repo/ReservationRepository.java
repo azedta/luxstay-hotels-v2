@@ -1,8 +1,6 @@
-package com.luxstay.luxstay_hotels_v2.domain.repo;
+package com.luxstay.luxstay_hotels_v2.domain.repository;
 
 import com.luxstay.luxstay_hotels_v2.domain.Reservation;
-import com.luxstay.luxstay_hotels_v2.domain.enums.ReservationStatus;
-import com.luxstay.luxstay_hotels_v2.domain.enums.ReservationType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -12,50 +10,46 @@ import java.util.List;
 
 public interface ReservationRepository extends JpaRepository<Reservation, Long> {
 
-    // Conflicts = ACTIVE reservations that overlap the requested interval:
-    // existing.start < requestedEnd AND existing.end > requestedStart
+    /**
+     * Overlap rule:
+     * Two ranges [start, end) overlap iff:
+     *   reqStart < existingEnd AND reqEnd > existingStart
+     *
+     * We also ignore CANCELLED reservations.
+     */
+    @Query("""
+        select (count(r) > 0)
+        from Reservation r
+        where r.room.id = :roomId
+          and lower(r.status) <> 'cancelled'
+          and :startDate < r.endDate
+          and :endDate > r.startDate
+          and (:excludeReservationId is null or r.id <> :excludeReservationId)
+    """)
+    boolean existsOverlappingReservation(
+            @Param("roomId") Long roomId,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate,
+            @Param("excludeReservationId") Long excludeReservationId
+    );
+
     @Query("""
         select r
         from Reservation r
-        where r.room.id = :roomId
-          and r.status = :status
-          and r.startDate < :endDate
-          and r.endDate > :startDate
+        where (:roomId is null or r.room.id = :roomId)
+          and (:customerId is null or r.customer.id = :customerId)
+          and (:status is null or lower(r.status) = lower(:status))
+          and (:paymentStatus is null or lower(r.paymentStatus) = lower(:paymentStatus))
+          and (:fromDate is null or r.startDate >= :fromDate)
+          and (:toDate is null or r.endDate <= :toDate)
+        order by r.createdAt desc
     """)
-    List<Reservation> findActiveConflicts(
+    List<Reservation> findAllFiltered(
             @Param("roomId") Long roomId,
-            @Param("status") ReservationStatus status,
-            @Param("startDate") LocalDate startDate,
-            @Param("endDate") LocalDate endDate
-    );
-
-    @Query("""
-        select r.room.id
-        from Reservation r
-        where r.status = :status
-          and r.startDate < :endDate
-          and r.endDate > :startDate
-    """)
-    List<Long> findBookedRoomIdsInRange(
-            @Param("status") ReservationStatus status,
-            @Param("startDate") LocalDate startDate,
-            @Param("endDate") LocalDate endDate
-    );
-
-    @Query("""
-    select r
-    from Reservation r
-    where (:customerId is null or r.customer.id = :customerId)
-      and (:roomId is null or r.room.id = :roomId)
-      and (:status is null or r.status = :status)
-      and (:type is null or r.type = :type)
-    order by r.startDate desc
-""")
-    List<Reservation> search(
             @Param("customerId") Long customerId,
-            @Param("roomId") Long roomId,
-            @Param("status") ReservationStatus status,
-            @Param("type") ReservationType type
+            @Param("status") String status,
+            @Param("paymentStatus") String paymentStatus,
+            @Param("fromDate") LocalDate fromDate,
+            @Param("toDate") LocalDate toDate
     );
-
 }

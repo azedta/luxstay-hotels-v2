@@ -20,46 +20,104 @@ public class CustomerService {
         this.repo = repo;
     }
 
+
     public List<Customer> list() {
         return repo.findAll();
     }
 
     public Customer get(Long id) {
-        return repo.findById(id).orElseThrow(() -> new ResourceNotFoundException("Customer not found: " + id));
+        return repo.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Customer not found: " + id));
     }
 
-    public Customer create(String fullName,
-                           String address,
-                           LocalDate dateOfBirth,
-                           String idNumber,
-                           IdType idType) {
 
-        repo.findByIdNumber(idNumber).ifPresent(c -> {
-            throw new IllegalArgumentException("A customer with this idNumber already exists");
-        });
+    /**
+     * Business rule:
+     * - Unique customer = (idNumber + email)
+     * - idType does NOT participate in uniqueness
+     */
+    public Customer findOrCreate(
+            String fullName,
+            String address,
+            LocalDate dateOfBirth,
+            String idNumber,
+            IdType idType,
+            String email
+    ) {
+        validateRequired(fullName, "fullName");
+        validateRequired(address, "address");
+        validateRequired(idNumber, "idNumber");
+        validateRequired(email, "email");
 
-        Customer c = Customer.builder()
-                .id(null)
-                .fullName(fullName)
-                .address(address)
-                .dateOfBirth(dateOfBirth)
-                .idNumber(idNumber)
-                .idType(idType)
-                .registrationDate(LocalDate.now())
-                .build();
+        if (dateOfBirth == null) {
+            throw new IllegalArgumentException("dateOfBirth is required");
+        }
+        if (idType == null) {
+            throw new IllegalArgumentException("idType is required");
+        }
 
-        return repo.save(c);
+        String normalizedEmail = normalizeEmail(email);
+        String normalizedIdNumber = idNumber.trim();
+
+        return repo.findByIdNumberAndEmailIgnoreCase(normalizedIdNumber, normalizedEmail)
+                .orElseGet(() -> repo.save(
+                        Customer.builder()
+                                .fullName(fullName.trim())
+                                .address(address.trim())
+                                .dateOfBirth(dateOfBirth)
+                                .idNumber(normalizedIdNumber)
+                                .idType(idType)
+                                .email(normalizedEmail)
+                                .registrationDate(LocalDate.now())
+                                .build()
+                ));
     }
 
-    public Customer update(Long id, String fullName, String address) {
+
+    public Customer update(Long id, String fullName, String address, String email) {
         Customer existing = get(id);
-        existing.setFullName(fullName);
-        existing.setAddress(address);
+
+        validateRequired(fullName, "fullName");
+        validateRequired(address, "address");
+        validateRequired(email, "email");
+
+        String normalizedEmail = normalizeEmail(email);
+
+        // If email changed → enforce uniqueness (idNumber + email)
+        if (!normalizedEmail.equalsIgnoreCase(existing.getEmail())) {
+            repo.findByIdNumberAndEmailIgnoreCase(existing.getIdNumber(), normalizedEmail)
+                    .ifPresent(other -> {
+                        if (!other.getId().equals(existing.getId())) {
+                            throw new IllegalArgumentException(
+                                    "Customer already exists with the same idNumber and email"
+                            );
+                        }
+                    });
+            existing.setEmail(normalizedEmail);
+        }
+
+        existing.setFullName(fullName.trim());
+        existing.setAddress(address.trim());
+
         return repo.save(existing);
     }
 
+
     public void delete(Long id) {
-        if (!repo.existsById(id)) throw new ResourceNotFoundException("Customer not found: " + id);
+        if (!repo.existsById(id)) {
+            throw new ResourceNotFoundException("Customer not found: " + id);
+        }
         repo.deleteById(id);
+    }
+
+
+    private static void validateRequired(String value, String field) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(field + " is required");
+        }
+    }
+
+    private static String normalizeEmail(String email) {
+        return email.trim().toLowerCase();
     }
 }

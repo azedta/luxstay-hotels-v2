@@ -5,10 +5,18 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
-@Table(name = "customer")
-@Getter @Setter
+@Table(
+        name = "customer",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uk_customer_idnumber_email", columnNames = {"id_number", "email"})
+        }
+)
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -18,22 +26,47 @@ public class Customer {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(name = "full_name", nullable = false, length = 255)
     private String fullName;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 255)
     private String address;
 
-    @Column(nullable = false)
+    @Column(name = "date_of_birth", nullable = false)
     private LocalDate dateOfBirth;
 
-    @Column(nullable = false, unique = true)
+    @Column(name = "id_number", nullable = false, length = 255)
     private String idNumber;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "id_type", nullable = false, length = 255)
     private IdType idType;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 255)
+    private String email;
+
+    @Column(name = "registration_date", nullable = false)
     private LocalDate registrationDate;
+
+    @OneToMany(mappedBy = "customer", fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<Reservation> reservations = new ArrayList<>();
+
+    @PrePersist
+    void prePersist() {
+        if (registrationDate == null) registrationDate = LocalDate.now();
+        normalize();
+    }
+
+    @PreUpdate
+    void preUpdate() {
+        normalize();
+    }
+
+    private void normalize() {
+        if (fullName != null) fullName = fullName.trim();
+        if (address != null) address = address.trim();
+        if (idNumber != null) idNumber = idNumber.trim();
+        if (email != null) email = email.trim().toLowerCase(); // IMPORTANT for consistent uniqueness
+    }
 }
