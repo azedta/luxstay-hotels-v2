@@ -1,10 +1,13 @@
 package com.luxstay.luxstay_hotels_v2.web.dto;
 
-import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
 
 import java.math.BigDecimal;
 
 public class RoomDtos {
+
     public record CreateRequest(
             @NotNull Long hotelId,
             @NotNull Integer roomNumber,
@@ -12,7 +15,8 @@ public class RoomDtos {
             @NotNull @Min(1) Integer capacity,
             @NotNull Boolean extendable,
             String amenities,
-            String problemsAndDamages
+            String problemsAndDamages,
+            String imageUrl
     ) {}
 
     public record UpdateRequest(
@@ -21,7 +25,8 @@ public class RoomDtos {
             @NotNull @Min(1) Integer capacity,
             @NotNull Boolean extendable,
             String amenities,
-            String problemsAndDamages
+            String problemsAndDamages,
+            String imageUrl
     ) {}
 
     public record Response(
@@ -29,12 +34,14 @@ public class RoomDtos {
             Long hotelId,
             String hotelName,
             String city,
+            Long chainId,
             String chainName,
             Integer roomNumber,
             BigDecimal price,
             Integer capacity,
             Boolean extendable,
             String amenities,
-            String problemsAndDamages
+            String problemsAndDamages,
+            String imageUrl
     ) {}
 }

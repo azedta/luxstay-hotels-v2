@@ -36,9 +36,13 @@ public class Room {
     @Column(nullable = false)
     private Boolean extendable;
 
-    @Column
+    @Column(length = 512)
     private String amenities;
 
-    @Column
+    @Column(length = 512)
     private String problemsAndDamages;
+
+    @Column(length = 512)
+    private String imageUrl;
+
 }

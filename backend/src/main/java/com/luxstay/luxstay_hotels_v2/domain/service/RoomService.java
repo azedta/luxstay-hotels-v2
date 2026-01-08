@@ -2,13 +2,13 @@ package com.luxstay.luxstay_hotels_v2.domain.service;
 
 import com.luxstay.luxstay_hotels_v2.domain.Hotel;
 import com.luxstay.luxstay_hotels_v2.domain.Room;
+import com.luxstay.luxstay_hotels_v2.domain.enums.ReservationStatus;
 import com.luxstay.luxstay_hotels_v2.domain.repo.HotelRepository;
 import com.luxstay.luxstay_hotels_v2.domain.repo.RoomRepository;
 import com.luxstay.luxstay_hotels_v2.web.exception.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.luxstay.luxstay_hotels_v2.domain.enums.ReservationStatus;
 import com.luxstay.luxstay_hotels_v2.domain.repo.ReservationRepository;
 
 import java.math.BigDecimal;
@@ -57,6 +57,7 @@ public class RoomService {
         existing.setExtendable(payload.getExtendable());
         existing.setAmenities(payload.getAmenities());
         existing.setProblemsAndDamages(payload.getProblemsAndDamages());
+        existing.setImageUrl(payload.getImageUrl());
         return roomRepo.save(existing);
     }
 
@@ -82,9 +83,8 @@ public class RoomService {
             throw new IllegalArgumentException("endDate must be after startDate");
         }
 
-        List<Long> bookedIds = reservationRepo.findBookedRoomIdsInRange(
-                ReservationStatus.ACTIVE, startDate, endDate
-        );
+        List<Long> bookedIds = reservationRepo.findBookedRoomIdsInRange(startDate, endDate);
+
 
         // If nothing is booked, pass null to keep query simple
         return roomRepo.searchAvailableRooms(
