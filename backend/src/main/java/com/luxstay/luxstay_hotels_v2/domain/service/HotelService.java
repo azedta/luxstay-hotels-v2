@@ -16,10 +16,14 @@ public class HotelService {
 
     private final HotelRepository hotelRepo;
     private final HotelChainRepository chainRepo;
+    private final HotelImageUrlSelector imageUrlSelector;
 
-    public HotelService(HotelRepository hotelRepo, HotelChainRepository chainRepo) {
+    public HotelService(HotelRepository hotelRepo,
+                        HotelChainRepository chainRepo,
+                        HotelImageUrlSelector imageUrlSelector) {
         this.hotelRepo = hotelRepo;
         this.chainRepo = chainRepo;
+        this.imageUrlSelector = imageUrlSelector;
     }
 
     public List<Hotel> list(Long chainId, String city) {
@@ -29,20 +33,28 @@ public class HotelService {
     }
 
     public Hotel get(Long id) {
-        return hotelRepo.findById(id).orElseThrow(() -> new ResourceNotFoundException("Hotel not found: " + id));
+        return hotelRepo.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Hotel not found: " + id));
     }
 
     public Hotel create(Long chainId, Hotel payload) {
         HotelChain chain = chainRepo.findById(chainId)
                 .orElseThrow(() -> new ResourceNotFoundException("HotelChain not found: " + chainId));
+
         payload.setId(null);
         payload.setChain(chain);
+
+        // ✅ Auto-assign an image if missing
+        if (payload.getImageUrl() == null || payload.getImageUrl().isBlank()) {
+            payload.setImageUrl(imageUrlSelector.nextUrl());
+        }
+
         return hotelRepo.save(payload);
     }
 
     public Hotel update(Long id, Hotel payload) {
         Hotel hotel = hotelRepo.findById(id)
-                .orElseThrow(() -> new RuntimeException("Hotel not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Hotel not found: " + id));
 
         hotel.setName(payload.getName());
         hotel.setAddress(payload.getAddress());
@@ -53,7 +65,6 @@ public class HotelService {
 
         return hotelRepo.save(hotel);
     }
-
 
     public void delete(Long id) {
         if (!hotelRepo.existsById(id)) throw new ResourceNotFoundException("Hotel not found: " + id);

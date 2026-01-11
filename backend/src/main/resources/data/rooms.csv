@@ -1,0 +1,98 @@
+hotelId,roomNumber,price,capacity,extendable,amenities,problemsAndDamages
+1,502,230.49,2,true,"WiFi, AC, Smart TV, Mini bar",null
+1,536,248.04,2,true,"WiFi, AC, TV","""Loose cabinet hinge (reported)"""
+2,410,366.32,4,true,"WiFi, AC, Smart TV, Work desk",null
+2,414,301.45,3,true,"WiFi, AC, Smart TV, Work desk",null
+2,418,136.59,1,false,"WiFi, AC, Balcony, Smart TV","""Minor scuff on wall"""
+2,422,166.65,2,false,"WiFi, Smart TV, City view",null
+3,207,250.75,2,true,"WiFi, AC, Balcony, Smart TV",null
+3,218,313.22,3,true,"WiFi, AC, TV","""Minor scuff on wall"""
+3,225,248.61,3,true,"WiFi, AC, Smart TV, Mini bar","""Loose cabinet hinge (reported)"""
+4,304,325.61,3,true,"WiFi, AC, Smart TV, Work desk",null
+4,315,412.44,4,true,"WiFi, AC, Premium bedding, Smart TV",null
+5,410,163.7,1,false,"WiFi, Smart TV, City view","""Loose cabinet hinge (reported)"""
+5,417,257.76,2,true,"WiFi, AC, Smart TV, Mini bar",null
+6,504,176.6,2,false,"WiFi, AC, Smart TV, Work desk",null
+6,506,268.57,2,true,"WiFi, Smart TV, Espresso machine","""Loose cabinet hinge (reported)"""
+6,508,310.81,3,true,"WiFi, Smart TV, City view","""Lamp flickers occasionally"""
+6,532,171.27,2,true,"WiFi, AC, Premium bedding, Smart TV",null
+7,307,264.81,3,true,"WiFi, AC, TV",null
+7,312,293.73,3,true,"WiFi, Smart TV, Espresso machine","""Minor scuff on wall"""
+7,333,161.14,2,false,"WiFi, Smart TV, City view",null
+8,106,148.16,1,false,"WiFi, AC, Smart TV, Work desk","""Lamp flickers occasionally"""
+8,116,172.83,2,false,"WiFi, AC, TV",null
+8,137,225.73,2,false,"WiFi, AC, Smart TV, Mini bar","""Loose cabinet hinge (reported)"""
+9,324,283.18,3,true,"WiFi, AC, Smart TV, Work desk",null
+9,326,152.24,1,false,"WiFi, AC, Smart TV, Mini bar",null
+9,329,156.87,1,false,"WiFi, AC, Smart TV, Mini bar",null
+10,105,189.63,2,true,"WiFi, AC, TV","""Loose cabinet hinge (reported)"""
+10,122,413.21,4,true,"WiFi, AC, Premium bedding, Smart TV","""Lamp flickers occasionally"""
+11,407,144.86,1,false,"WiFi, AC, Bathtub, Smart TV",null
+11,413,239.2,2,false,"WiFi, AC, Smart TV, Work desk",null
+12,407,179.92,2,true,"WiFi, AC, Bathtub, Smart TV",null
+12,422,186.48,2,false,"WiFi, AC, Premium bedding, Smart TV","""Lamp flickers occasionally"""
+13,504,293.87,3,true,"WiFi, AC, Smart TV, Work desk","""Lamp flickers occasionally"""
+13,507,248.96,3,true,"WiFi, AC, Smart TV, Mini bar","""Lamp flickers occasionally"""
+14,404,142.43,1,false,"WiFi, AC, Premium bedding, Smart TV",null
+14,411,264.3,2,false,"WiFi, AC, Premium bedding, Smart TV",null
+14,425,182.95,2,true,"WiFi, Smart TV, Espresso machine","""Loose cabinet hinge (reported)"""
+15,304,405.23,4,true,"WiFi, AC, Smart TV, Work desk","""Lamp flickers occasionally"""
+15,331,224.45,2,false,"WiFi, AC, Smart TV, Mini bar",null
+15,333,172.42,1,false,"WiFi, AC, Smart TV, Mini bar","""Minor scuff on wall"""
+15,338,227.13,2,true,"WiFi, AC, Balcony, Smart TV",null
+16,216,232.89,2,true,"WiFi, AC, Balcony, Smart TV","""Lamp flickers occasionally"""
+16,217,300.86,4,true,"WiFi, AC, Smart TV, Work desk",null
+16,221,214.65,2,true,"WiFi, AC, Balcony, Smart TV",null
+17,219,250.71,2,false,"WiFi, Smart TV, Espresso machine","""Loose cabinet hinge (reported)"""
+17,224,264.93,3,false,"WiFi, AC, TV",null
+18,107,225.53,2,false,"WiFi, AC, Smart TV, Mini bar","""Loose cabinet hinge (reported)"""
+18,110,188.04,2,true,"WiFi, Smart TV, Espresso machine",null
+18,136,250.23,2,true,"WiFi, AC, Balcony, Smart TV","""Lamp flickers occasionally"""
+19,211,295.2,3,true,"WiFi, Smart TV, Espresso machine",null
+19,217,171.99,1,false,"WiFi, AC, TV","""Minor scuff on wall"""
+20,124,206.28,2,true,"WiFi, AC, Balcony, Smart TV","""Lamp flickers occasionally"""
+20,138,306.98,4,true,"WiFi, AC, Smart TV, Mini bar","""Loose cabinet hinge (reported)"""
+21,123,277.77,3,true,"WiFi, AC, Smart TV, Mini bar","""Lamp flickers occasionally"""
+21,136,246.99,2,true,"WiFi, AC, Bathtub, Smart TV",null
+22,222,332.69,3,true,"WiFi, AC, Smart TV, Work desk",null
+22,227,332.03,3,true,"WiFi, AC, Premium bedding, Smart TV",null
+23,302,276.82,3,true,"WiFi, AC, Smart TV, Work desk","""Lamp flickers occasionally"""
+23,315,229.56,2,true,"WiFi, AC, Balcony, Smart TV",null
+24,112,267.19,2,true,"WiFi, AC, Bathtub, Smart TV",null
+24,117,266.64,3,true,"WiFi, AC, Bathtub, Smart TV","""Minor scuff on wall"""
+25,203,229.2,3,true,"WiFi, AC, Smart TV, Mini bar",null
+25,217,263.38,2,false,"WiFi, AC, Balcony, Smart TV","""Loose cabinet hinge (reported)"""
+26,120,203.92,2,true,"WiFi, Smart TV, City view","""Minor scuff on wall"""
+26,133,144.23,1,false,"WiFi, AC, Bathtub, Smart TV","""Loose cabinet hinge (reported)"""
+27,220,250.71,2,true,"WiFi, AC, Smart TV, Mini bar",null
+27,237,301.8,3,true,"WiFi, AC, Premium bedding, Smart TV",null
+28,211,263.05,3,true,"WiFi, AC, Smart TV, Work desk","""Lamp flickers occasionally"""
+28,231,345.97,4,true,"WiFi, AC, Smart TV, Mini bar",null
+28,233,133.69,1,false,"WiFi, AC, Premium bedding, Smart TV","""Minor scuff on wall"""
+29,127,298.08,3,true,"WiFi, AC, Bathtub, Smart TV",null
+29,130,160.26,1,false,"WiFi, AC, Smart TV, Work desk","""Lamp flickers occasionally"""
+30,412,312.51,3,true,"WiFi, AC, Smart TV, Mini bar","""Lamp flickers occasionally"""
+30,415,127.0,1,false,"WiFi, AC, Premium bedding, Smart TV","""Loose cabinet hinge (reported)"""
+31,536,242.08,2,true,"WiFi, AC, Bathtub, Smart TV","""Lamp flickers occasionally"""
+31,539,388.18,4,true,"WiFi, AC, Premium bedding, Smart TV",null
+32,316,291.56,3,true,"WiFi, AC, Smart TV, Work desk","""Loose cabinet hinge (reported)"""
+32,318,188.89,2,true,"WiFi, AC, Smart TV, Work desk",null
+33,210,236.71,3,true,"WiFi, AC, Premium bedding, Smart TV",null
+33,215,168.97,1,false,"WiFi, AC, Bathtub, Smart TV","""Lamp flickers occasionally"""
+33,225,235.51,2,false,"WiFi, AC, Bathtub, Smart TV",null
+34,120,331.41,3,true,"WiFi, AC, Smart TV, Mini bar",null
+34,123,206.94,2,true,"WiFi, AC, Balcony, Smart TV","""Loose cabinet hinge (reported)"""
+35,409,405.82,4,true,"WiFi, Smart TV, Espresso machine",null
+35,411,173.93,2,true,"WiFi, Smart TV, Espresso machine",null
+35,430,182.28,2,true,"WiFi, AC, Bathtub, Smart TV",null
+36,406,241.39,2,true,"WiFi, AC, Balcony, Smart TV",null
+36,417,322.75,3,false,"WiFi, AC, Smart TV, Mini bar",null
+37,110,159.17,1,false,"WiFi, AC, Smart TV, Mini bar",null
+37,116,321.03,3,true,"WiFi, AC, Smart TV, Work desk","""Lamp flickers occasionally"""
+38,207,137.72,1,false,"WiFi, AC, Bathtub, Smart TV",null
+38,220,338.67,4,false,"WiFi, AC, Smart TV, Mini bar",null
+38,238,265.19,3,false,"WiFi, Smart TV, Espresso machine",null
+39,524,157.85,1,false,"WiFi, Smart TV, Espresso machine","""Lamp flickers occasionally"""
+39,528,212.92,2,true,"WiFi, AC, Balcony, Smart TV","""Loose cabinet hinge (reported)"""
+40,410,216.39,2,false,"WiFi, AC, Premium bedding, Smart TV",null
+40,428,239.41,2,true,"WiFi, AC, Smart TV, Mini bar","""Lamp flickers occasionally"""

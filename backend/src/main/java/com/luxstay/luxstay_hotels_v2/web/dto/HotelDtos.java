@@ -17,16 +17,17 @@ public class HotelDtos {
             String imageUrl
     ) {}
 
+    // ✅ No imageUrl here anymore (backend assigns on create)
     public record CreateRequest(
             @NotNull Long chainId,
             @NotBlank String name,
             @NotBlank String address,
             @NotBlank String city,
             String email,
-            Integer rating,
-            String imageUrl
+            Integer rating
     ) {}
 
+    // ✅ Keep imageUrl on update (optional)
     public record UpdateRequest(
             @NotBlank String name,
             @NotBlank String address,

@@ -47,4 +47,28 @@ public class HotelChainController {
     public void delete(@PathVariable Long id) {
         service.delete(id);
     }
+
+    @PostMapping("/seed")
+    public List<HotelChainDtos.Response> seed() {
+        return service.seedDefaultChains().stream()
+                .map(c -> new HotelChainDtos.Response(
+                        c.getId(),
+                        c.getName(),
+                        c.getHotels() == null ? 0 : c.getHotels().size()
+                ))
+                .toList();
+    }
+
+    @PostMapping("/reset-and-seed")
+    public List<HotelChainDtos.Response> resetAndSeed() {
+        return service.resetAndSeedDefaultChains().stream()
+                .map(c -> new HotelChainDtos.Response(
+                        c.getId(),
+                        c.getName(),
+                        c.getHotels() == null ? 0 : c.getHotels().size()
+                ))
+                .toList();
+    }
+
+
 }

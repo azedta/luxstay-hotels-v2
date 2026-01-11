@@ -67,7 +67,6 @@ public class ReservationService {
         return reservations.findAllFilteredWithDates(roomId, customerId, status, paymentStatus, fromDate, toDate);
     }
 
-
     @Transactional
     public Reservation create(ReservationDtos.CreateRequest req) {
         validateDateRange(req.startDate(), req.endDate());
@@ -99,6 +98,17 @@ public class ReservationService {
         Reservation r = reservations.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Reservation not found: " + id));
 
+        boolean changesDatesOrRoom =
+                (req.roomId() != null) ||
+                        (req.startDate() != null) ||
+                        (req.endDate() != null);
+
+        // Business rule: once checked-in, you cannot change room/dates
+        if (changesDatesOrRoom && r.getCheckedInAt() != null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Cannot change room or dates after check-in.");
+        }
+
         Long newRoomId = (req.roomId() != null) ? req.roomId() : r.getRoom().getId();
         LocalDate newStart = (req.startDate() != null) ? req.startDate() : r.getStartDate();
         LocalDate newEnd = (req.endDate() != null) ? req.endDate() : r.getEndDate();
@@ -110,11 +120,6 @@ public class ReservationService {
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Room not found: " + req.roomId()));
             r.setRoom(room);
         }
-
-        boolean changesDatesOrRoom =
-                (req.roomId() != null) ||
-                        (req.startDate() != null) ||
-                        (req.endDate() != null);
 
         if (changesDatesOrRoom) {
             ensureRoomAvailable(newRoomId, newStart, newEnd, r.getId());
@@ -134,6 +139,11 @@ public class ReservationService {
         if (req.status() != null) {
             String next = normalizeStatus(req.status());
             if (STATUS_CANCELLED.equalsIgnoreCase(next)) {
+                // Business rule: cannot cancel after check-in
+                if (r.getCheckedInAt() != null) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                            "Cannot cancel a reservation after check-in.");
+                }
                 r.setStatus(STATUS_CANCELLED);
                 r.setCancelledAt(LocalDateTime.now());
             } else {
@@ -160,6 +170,12 @@ public class ReservationService {
 
         if (STATUS_CANCELLED.equalsIgnoreCase(r.getStatus())) return r;
 
+        // Business rule: cannot cancel after check-in
+        if (r.getCheckedInAt() != null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Cannot cancel a reservation after check-in.");
+        }
+
         r.setStatus(STATUS_CANCELLED);
         r.setCancelledAt(LocalDateTime.now());
 
@@ -174,8 +190,13 @@ public class ReservationService {
 
     @Transactional
     public Reservation pay(Long id) {
-        Reservation r = reservations.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Reservation not found: " + id));
+        Reservation r = get(id);
+
+        if (STATUS_CANCELLED.equalsIgnoreCase(r.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot pay a cancelled reservation.");
+        }
+
+        if (PAY_PAID.equalsIgnoreCase(r.getPaymentStatus())) return r; // idempotent
 
         r.setPaymentStatus(PAY_PAID);
         return reservations.save(r);
@@ -193,10 +214,23 @@ public class ReservationService {
     }
 
     private void ensureRoomAvailable(Long roomId, LocalDate start, LocalDate end, Long excludeReservationId) {
-        boolean overlap = reservations.existsOverlappingReservation(roomId, start, end, excludeReservationId);
-        if (overlap) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Room is not available for the selected dates");
-        }
+
+        // Fetch conflicts for a detailed error message (overlap rule: [start,end) )
+        List<Reservation> conflicts =
+                reservations.findOverlappingReservations(roomId, start, end, excludeReservationId);
+
+        if (conflicts.isEmpty()) return;
+
+        Reservation c = conflicts.get(0); // earliest conflict
+
+        String message = String.format(
+                "Room %d is already booked from %s to %s. Your requested dates %s to %s overlap this period.",
+                roomId,
+                c.getStartDate(), c.getEndDate(),
+                start, end
+        );
+
+        throw new ResponseStatusException(HttpStatus.CONFLICT, message);
     }
 
     private Customer findOrCreateCustomer(ReservationDtos.CustomerRef c) {
@@ -212,7 +246,6 @@ public class ReservationService {
                     created.setIdNumber(idNumber);
                     created.setIdType(c.idType());
                     created.setEmail(email);
-                    // registrationDate handled by @PrePersist in Customer
                     return customers.save(created);
                 });
     }

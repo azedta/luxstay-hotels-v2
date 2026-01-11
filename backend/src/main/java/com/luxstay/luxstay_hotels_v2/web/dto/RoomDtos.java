@@ -8,6 +8,7 @@ import java.math.BigDecimal;
 
 public class RoomDtos {
 
+    // ✅ Backend assigns imageUrl on create (so no imageUrl in request)
     public record CreateRequest(
             @NotNull Long hotelId,
             @NotNull Integer roomNumber,
@@ -15,10 +16,10 @@ public class RoomDtos {
             @NotNull @Min(1) Integer capacity,
             @NotNull Boolean extendable,
             String amenities,
-            String problemsAndDamages,
-            String imageUrl
+            String problemsAndDamages
     ) {}
 
+    // ✅ Keep imageUrl on update (optional override). Remove too if you want it fully controlled.
     public record UpdateRequest(
             @NotNull Integer roomNumber,
             @NotNull @DecimalMin("0.00") BigDecimal price,

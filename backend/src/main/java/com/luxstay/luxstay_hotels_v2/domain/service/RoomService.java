@@ -2,18 +2,15 @@ package com.luxstay.luxstay_hotels_v2.domain.service;
 
 import com.luxstay.luxstay_hotels_v2.domain.Hotel;
 import com.luxstay.luxstay_hotels_v2.domain.Room;
-import com.luxstay.luxstay_hotels_v2.domain.enums.ReservationStatus;
 import com.luxstay.luxstay_hotels_v2.domain.repo.HotelRepository;
+import com.luxstay.luxstay_hotels_v2.domain.repo.ReservationRepository;
 import com.luxstay.luxstay_hotels_v2.domain.repo.RoomRepository;
 import com.luxstay.luxstay_hotels_v2.web.exception.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.luxstay.luxstay_hotels_v2.domain.repo.ReservationRepository;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
-
 import java.util.List;
 
 @Service
@@ -23,11 +20,16 @@ public class RoomService {
     private final RoomRepository roomRepo;
     private final HotelRepository hotelRepo;
     private final ReservationRepository reservationRepo;
+    private final RoomImageUrlSelector roomImageUrlSelector;
 
-    public RoomService(RoomRepository roomRepo, HotelRepository hotelRepo, ReservationRepository reservationRepo) {
+    public RoomService(RoomRepository roomRepo,
+                       HotelRepository hotelRepo,
+                       ReservationRepository reservationRepo,
+                       RoomImageUrlSelector roomImageUrlSelector) {
         this.roomRepo = roomRepo;
         this.hotelRepo = hotelRepo;
         this.reservationRepo = reservationRepo;
+        this.roomImageUrlSelector = roomImageUrlSelector;
     }
 
     public List<Room> list(Long hotelId, String city, String chainName) {
@@ -44,8 +46,15 @@ public class RoomService {
     public Room create(Long hotelId, Room payload) {
         Hotel hotel = hotelRepo.findById(hotelId)
                 .orElseThrow(() -> new ResourceNotFoundException("Hotel not found: " + hotelId));
+
         payload.setId(null);
         payload.setHotel(hotel);
+
+        // ✅ auto-assign image if missing
+        if (payload.getImageUrl() == null || payload.getImageUrl().isBlank()) {
+            payload.setImageUrl(roomImageUrlSelector.nextUrl());
+        }
+
         return roomRepo.save(payload);
     }
 
@@ -66,8 +75,6 @@ public class RoomService {
         roomRepo.deleteById(id);
     }
 
-
-
     public List<Room> available(LocalDate startDate,
                                 LocalDate endDate,
                                 Long hotelId,
@@ -85,8 +92,6 @@ public class RoomService {
 
         List<Long> bookedIds = reservationRepo.findBookedRoomIdsInRange(startDate, endDate);
 
-
-        // If nothing is booked, pass null to keep query simple
         return roomRepo.searchAvailableRooms(
                 hotelId,
                 city,
@@ -95,6 +100,5 @@ public class RoomService {
                 maxPrice,
                 bookedIds.isEmpty() ? null : bookedIds
         );
-
     }
 }

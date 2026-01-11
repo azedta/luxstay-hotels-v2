@@ -39,7 +39,7 @@ public class HotelController {
                 .city(req.city())
                 .email(req.email())
                 .rating(req.rating())
-                .imageUrl(req.imageUrl())
+                // ✅ NO imageUrl here — backend assigns it
                 .build();
 
         return toDto(service.create(req.chainId(), payload));
@@ -53,11 +53,10 @@ public class HotelController {
                 .city(req.city())
                 .email(req.email())
                 .rating(req.rating())
-                .imageUrl(req.imageUrl())
+                .imageUrl(req.imageUrl()) // ✅ still allowed on update
                 .build();
 
         return toDto(service.update(id, payload));
-
     }
 
     @DeleteMapping("/{id}")
@@ -78,6 +77,4 @@ public class HotelController {
                 h.getImageUrl()
         );
     }
-
-
 }

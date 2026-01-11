@@ -44,7 +44,7 @@ public class RoomController {
                 .extendable(req.extendable())
                 .amenities(req.amenities())
                 .problemsAndDamages(req.problemsAndDamages())
-                .imageUrl(req.imageUrl())
+                // ✅ no imageUrl here — backend assigns it in RoomService.create(...)
                 .build();
 
         return toResponse(service.create(req.hotelId(), payload));
@@ -59,7 +59,7 @@ public class RoomController {
                 .extendable(req.extendable())
                 .amenities(req.amenities())
                 .problemsAndDamages(req.problemsAndDamages())
-                .imageUrl(req.imageUrl())
+                .imageUrl(req.imageUrl()) // ✅ still allowed on update
                 .build();
 
         return toResponse(service.update(id, payload));
@@ -91,7 +91,7 @@ public class RoomController {
     private RoomDtos.Response toResponse(Room r) {
         Long hotelId = (r.getHotel() == null) ? null : r.getHotel().getId();
         String hotelName = (r.getHotel() == null) ? null : r.getHotel().getName();
-        String city = (r.getHotel() == null) ? null : r.getHotel().getCity(); // ✅ ADD THIS
+        String city = (r.getHotel() == null) ? null : r.getHotel().getCity();
         Long chainId = (r.getHotel() == null || r.getHotel().getChain() == null) ? null : r.getHotel().getChain().getId();
         String chainName = (r.getHotel() == null || r.getHotel().getChain() == null) ? null : r.getHotel().getChain().getName();
 

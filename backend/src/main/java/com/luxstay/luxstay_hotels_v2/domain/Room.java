@@ -8,8 +8,12 @@ import java.math.BigDecimal;
 @Entity
 @Table(
         name = "room",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"hotel_id", "room_number"})
+        uniqueConstraints = @UniqueConstraint(
+                name = "uq_room_hotel_room_number",
+                columnNames = {"hotel_id", "room_number"}
+        )
 )
+
 @Getter @Setter
 @NoArgsConstructor
 @AllArgsConstructor
