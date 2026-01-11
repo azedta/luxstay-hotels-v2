@@ -4,8 +4,13 @@ import Card from "../../components/ui/Card";
 import Button from "../../components/ui/Button";
 import { endpoints } from "../../api/endpoints";
 import { money } from "../../utils/format";
+import { http } from "../../api/http";
 
-const API_BASE = "http://localhost:8080";
+// Only used for static assets (logos/images) if needed; API calls use http.js
+const ASSET_BASE =
+    (import.meta.env.VITE_API_BASE_URL || "").trim().replace(/\/+$/, "") ||
+    "http://localhost:8080";
+
 
 /** pick first non-empty value */
 function pick(...vals) {
@@ -319,12 +324,14 @@ export default function ReservationConfirmation() {
         setRoom(null);
 
         try {
-            const reservation = await fetchJson(`${API_BASE}${endpoints.reservationById(id)}`, signal);
+            // ✅ API call via http.js (uses VITE_API_BASE_URL)
+            const reservation = await http.get(endpoints.reservationById(id), { signal });
             setResv(reservation);
 
             const rid = pick(reservation?.roomId);
             if (rid !== undefined && rid !== null && rid !== "") {
-                const roomDto = await fetchJson(`${API_BASE}/api/v2/rooms/${rid}`, signal);
+                // ✅ API call via http.js (no hardcoded localhost)
+                const roomDto = await http.get(`/api/v2/rooms/${rid}`, { signal });
                 setRoom(roomDto);
                 setHeroSrc(roomDto?.imageUrl || fallbackImage());
             } else {
@@ -340,6 +347,7 @@ export default function ReservationConfirmation() {
             setLoading(false);
         }
     }
+
 
     useEffect(() => {
         const controller = new AbortController();

@@ -1,25 +1,51 @@
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+const RAW_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-async function request(path, { method = "GET", body, headers } = {}) {
+// Normalize base url (no trailing slash)
+const BASE_URL =
+    (RAW_BASE_URL && RAW_BASE_URL.trim().replace(/\/+$/, "")) ||
+    "http://localhost:8080";
+
+console.log("[API] BASE_URL =", BASE_URL);
+
+async function request(
+    path,
+    { method = "GET", body, headers, signal } = {}
+) {
     const res = await fetch(`${BASE_URL}${path}`, {
         method,
-        headers: { "Content-Type": "application/json", ...(headers || {}) },
+        signal, // ✅ AbortController support
+        headers: {
+            "Content-Type": "application/json",
+            ...(headers || {}),
+        },
         body: body ? JSON.stringify(body) : undefined,
     });
 
+    const contentType = res.headers.get("content-type") || "";
     const text = await res.text();
-    const data = text ? JSON.parse(text) : null;
+
+    const data =
+        text && contentType.includes("application/json")
+            ? JSON.parse(text)
+            : text || null;
 
     if (!res.ok) {
-        const msg = data?.message || data?.error || `Request failed (${res.status})`;
+        const msg =
+            (data && typeof data === "object" && (data.message || data.error)) ||
+            (typeof data === "string" && data) ||
+            `Request failed (${res.status})`;
+
         throw new Error(msg);
     }
+
     return data;
 }
 
 export const http = {
-    get: (p) => request(p),
-    post: (p, b) => request(p, { method: "POST", body: b }),
-    put: (p, b) => request(p, { method: "PUT", body: b }),
-    del: (p) => request(p, { method: "DELETE" }),
+    get: (path, options) => request(path, { ...options, method: "GET" }),
+    post: (path, body, options) =>
+        request(path, { ...options, method: "POST", body }),
+    put: (path, body, options) =>
+        request(path, { ...options, method: "PUT", body }),
+    del: (path, options) => request(path, { ...options, method: "DELETE" }),
 };

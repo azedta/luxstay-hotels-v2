@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { endpoints } from "../../api/endpoints";
+import { http } from "../../api/http";
 
+// Only needed for image URLs (logos). API calls go through http.js.
 const API_BASE =
-    import.meta?.env?.VITE_API_BASE_URL?.replace(/\/$/, "") || "http://localhost:8080";
-const CHAINS_ENDPOINT = `${API_BASE}${endpoints.hotelChains}`;
+    (import.meta.env.VITE_API_BASE_URL || "").trim().replace(/\/+$/, "") ||
+    "http://localhost:8080";
 
 // Cache (so revisiting the page feels instant)
 const CACHE_KEY = "luxstay.hotelChains.v1";
@@ -20,20 +22,11 @@ const FALLBACK_LOGO = "placeholder.png";
  * - collapse multiple spaces/underscores
  * - remove characters that are unsafe for filenames (keeps letters/numbers/_-)
  * - .png
- *
- * Examples:
- *  "Marriott" -> "marriott.png"
- *  "Four Seasons Hotels" -> "four_seasons_hotels.png"
  */
 function chainNameToLogoFile(chainName) {
     const cleaned = String(chainName || "")
-        // remove anything after "&"
         .split("&")[0]
-        // remove corporate suffixes (whole words only)
-        .replace(
-            /\b(hotel|hotels|inn|inns|group|groups|resort|resorts|suite|suites)\b/gi,
-            ""
-        )
+        .replace(/\b(hotel|hotels|inn|inns|group|groups|resort|resorts|suite|suites)\b/gi, "")
         .trim();
 
     const safe = cleaned
@@ -45,9 +38,6 @@ function chainNameToLogoFile(chainName) {
     if (!safe) return FALLBACK_LOGO;
     return `${safe}.png`;
 }
-
-
-
 
 function getLogoSrc(chainName) {
     const file = chainNameToLogoFile(chainName);
@@ -107,12 +97,10 @@ export default function HotelChains() {
                 // skip network if cache is fresh
                 if (cacheFresh) return;
 
-                const res = await fetch(CHAINS_ENDPOINT, { signal: controller.signal });
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                // ✅ Always use shared http client (uses VITE_API_BASE_URL)
+                const data = await http.get(endpoints.hotelChains);
 
-                const data = await res.json();
                 const normalized = Array.isArray(data) ? data : [];
-
                 setChains(normalized);
                 writeCache(normalized);
                 setHasLoadedOnce(true);
@@ -163,8 +151,7 @@ export default function HotelChains() {
                             </h1>
 
                             <p className="mt-4 max-w-xl text-sm text-black/60">
-                                Discover world-class hotel groups and explore their curated portfolios of luxury and
-                                comfort.
+                                Discover world-class hotel groups and explore their curated portfolios of luxury and comfort.
                             </p>
 
                             {!!error && (
@@ -229,7 +216,6 @@ export default function HotelChains() {
                                             loading="lazy"
                                             decoding="async"
                                             onError={(e) => {
-                                                // hard fallback if file missing / server error
                                                 if (e.currentTarget.src !== getFallbackLogoSrc()) {
                                                     e.currentTarget.src = getFallbackLogoSrc();
                                                 }
@@ -242,8 +228,7 @@ export default function HotelChains() {
                                         <h3 className="font-serif text-2xl text-[#0B0F14]">{name}</h3>
 
                                         <p className="mt-2 text-sm text-black/60">
-                                            Hotels in this chain:{" "}
-                                            <span className="font-medium text-black/80">{hotelsCount}</span>
+                                            Hotels in this chain: <span className="font-medium text-black/80">{hotelsCount}</span>
                                         </p>
 
                                         <button

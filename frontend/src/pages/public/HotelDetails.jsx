@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Button from "../../components/ui/Button";
 import { endpoints } from "../../api/endpoints";
+import { http } from "../../api/http";
 
-const API_BASE = "http://localhost:8080";
 const description =
     "A refined boutique stay with calm interiors, thoughtful details, and a smooth booking experience. Enjoy elegant spaces, modern comfort, and a location designed to make every arrival feel effortless.";
 
@@ -66,9 +66,10 @@ export default function HotelDetails() {
         async function load() {
             try {
                 setLoading(true);
-                const res = await fetch(`${API_BASE}${endpoints.hotelById(id)}`);
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                const data = await res.json();
+
+                // ✅ uses VITE_API_BASE_URL via http.js
+                const data = await http.get(endpoints.hotelById(id));
+
                 if (!cancelled) setHotel(data);
             } catch (e) {
                 console.error("Failed to load hotel:", e);

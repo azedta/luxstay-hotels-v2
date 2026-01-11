@@ -3,11 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import Card from "../../components/ui/Card";
 import Button from "../../components/ui/Button";
 import { endpoints } from "../../api/endpoints";
-
-const API_BASE =
-    import.meta?.env?.VITE_API_BASE_URL?.replace(/\/$/, "") || "http://localhost:8080";
-
-const HOTELS_ENDPOINT = `${API_BASE}${endpoints.hotels}`;
+import { http } from "../../api/http";
 
 // Cache (fast revisit)
 const CACHE_KEY = "luxstay.hotels.v1";
@@ -81,14 +77,11 @@ export default function Hotels() {
 
         async function load() {
             try {
-                // skip network if cache fresh
                 if (cacheFresh) return;
 
                 setLoading(true);
-                const res = await fetch(HOTELS_ENDPOINT, { signal: controller.signal });
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-                const data = await res.json();
+                const data = await http.get(endpoints.hotels);
                 const normalized = Array.isArray(data) ? data : [];
 
                 setHotels(normalized);
@@ -99,7 +92,6 @@ export default function Hotels() {
 
                 console.error("Failed to load hotels:", e);
 
-                // if cache exists, keep UI
                 if (cached?.data?.length) {
                     setHasLoadedOnce(true);
                     return;
