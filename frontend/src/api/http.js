@@ -5,8 +5,6 @@ const BASE_URL =
     (RAW_BASE_URL && RAW_BASE_URL.trim().replace(/\/+$/, "")) ||
     "http://localhost:8080";
 
-console.log("[API] BASE_URL =", BASE_URL);
-
 async function request(
     path,
     { method = "GET", body, headers, signal } = {}
